@@ -119,6 +119,26 @@ if options['auto']
     site.process
   end
 
+  require 'fileutils'
+  dw.add_observer do |*args|
+    args.each do |arg|
+      less_source = arg.path
+      next unless less_source =~ /.less$/
+      destination_filename = "#{File.basename(less_source, File.extname(less_source))}.css"
+      destination = "#{destination_filename}"
+      
+      if !File.exists?(destination) || File.stat(less_source).mtime > File.stat(destination).mtime
+        puts "Compiling #{less_source}"
+        engine = Less::Engine.new(File.read(less_source))
+        css = Less.version > "1.0" ? engine.to_css : engine.to_css(:desc)
+        css.delete!("\n") #if options['compress']
+        File.open(destination, "w") {|file|
+          file.write css
+        }
+      end
+    end
+  end
+
   dw.start
 
   unless options['server']
